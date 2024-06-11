@@ -1,0 +1,14 @@
+FROM --platform=linux/amd64 nvidia/cuda:12.2.2-cudnn8-devel-ubuntu20.04
+
+WORKDIR /app
+
+COPY agent_requirements.txt /app/
+
+RUN apt-get update \
+    && apt-get install -y vim \
+    && apt-get install -y python3-pip \
+    && pip3 install --no-cache-dir -r agent_requirements.txt
+
+# for llama.cpp
+# ref: https://github.com/abetlen/llama-cpp-python
+RUN CMAKE_ARGS="-DLLAMA_CUBLAS=on" pip3 install llama-cpp-python==0.2.75
