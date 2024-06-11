@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  web:
+    build: 
+      context: .
+      dockerfile: web_dockerfile
+    image: lm-agent/web:v1.0 # rag/web:2024.05.27
+    container_name: lm_agent_web
+    tty: true
+    restart: always
+    command: streamlit run /web/app.py --server.headless true --server.fileWatcherType none --browser.gatherUsageStats false --server.address 0.0.0.0 --server.port 8502
+    ports:
+      - "8502:8502"
+    networks:
+      - shared_network
+    volumes:
+      - ./web:/web
+
+  agent:
+    build: 
+      context: .
+      dockerfile: agent_dockerfile
+    image: lm-agent/agent:v1.0 # rag/llama_index:2024.05.23
+    container_name: lm_agent_agent
+    tty: true
+    command: gunicorn -w 1 -t 600 -b 0.0.0.0:5020 --chdir /agent app:app
+    restart: always
+    ports:
+      - "5020:5020"
+    networks:
+      - shared_network
+    volumes:
+      - ./web/DOCUMENT:/agent/DOCUMENT
+      - ./agent:/agent
+      - ./pretrained_model/LLM:/pretrained_model/LLM
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  retrieve:
+    build: 
+      context: .
+      dockerfile: retrieve_dockerfile
+    image: lm-agent/retrieve:v1.0 # rag/retrieve:2024.06.04 
+    container_name: lm_agent_retrieve
+    tty: true
+    command: gunicorn -w 1 -t 600 -b 0.0.0.0:5030 --chdir /retrieve app:app
+    restart: always
+    ports:
+      - "5030:5030"
+    networks:
+      - shared_network
+    volumes:
+      - ./web/DOCUMENT:/retrieve/DOCUMENT
+      - ./retrieve:/retrieve
+      - ./pretrained_model/embedding:/pretrained_model/embedding
+      - ./pretrained_model/text_classification:/pretrained_model/text_classification
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+networks:
+  shared_network:
+    driver: bridge
