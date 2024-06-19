@@ -46,7 +46,7 @@ services:
     build: 
       context: .
       dockerfile: retrieve_dockerfile
-    image: lm-agent/retrieve:v1.0
+    image: lm-agent/retrieve:v1.1
     container_name: lm_agent_retrieve
     tty: true
     command: gunicorn -w 1 -t 600 -b 0.0.0.0:5030 --chdir /retrieve app:app
